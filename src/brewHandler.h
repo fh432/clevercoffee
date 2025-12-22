@@ -77,6 +77,10 @@ HX711_ADC LoadCell2(PIN_HXDAT2, PIN_HXCLK);
  * @brief Toggle or momentary input for Brew Switch
  */
 void checkbrewswitch() {
+    if (brewSwitch == nullptr) {
+        LOG(ERROR, "brewSwitch pointer is null (FH)!");
+        return;
+    }
     uint8_t brewSwitchReading = brewSwitch->isPressed();
 
     if (BREWSWITCH_TYPE == Switch::TOGGLE) {
