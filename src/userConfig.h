@@ -24,7 +24,7 @@
 #define OLED_DISPLAY          2       // 0 = deactivated, 1 = SH1106 (e.g. 1.3 "128x64), 2 = SSD1306 (e.g. 0.96" 128x64), 3 = SH1106_126x64_SPI
 #define OLED_I2C              0x3C    // I2C address for OLED, 0x3C by default
 #define DISPLAYTEMPLATE       2       // 1 = Standard display template, 2 = Minimal template, 3 = only temperature, 4 = scale template, 20 = vertical display (see git Handbook for further information)
-#define DISPLAYROTATE         U8G2_R0 // rotate display clockwise: U8G2_R0 = no rotation; U8G2_R1 = 90°; U8G2_R2 = 180°; U8G2_R3 = 270°
+#define DISPLAYROTATE         U8G2_R2 // rotate display clockwise: U8G2_R0 = no rotation; U8G2_R1 = 90°; U8G2_R2 = 180°; U8G2_R3 = 270°
 #define SCREEN_WIDTH          128     // OLED display width, in pixels
 #define SCREEN_HEIGHT         64      // OLED display height, in pixels
 #define FEATURE_SHOTTIMER     1       // 0 = deactivated, 1 = activated (with weight if FEATURE_SCALE activated)
@@ -91,4 +91,4 @@
 
 // Log level for serial console, valid options (all with Logger::Level:: prefix) are:
 // TRACE, DEBUG, INFO, WARNING, ERROR, FATAL
-#define LOGLEVEL Logger::Level::INFO
+#define LOGLEVEL Logger::Level::DEBUG
