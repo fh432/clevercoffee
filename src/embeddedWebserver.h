@@ -58,7 +58,7 @@ void serverSetup();
 void setEepromWriteFcn(int (*fcnPtr)(void));
 
 // editable vars are specified in main.cpp
-#define EDITABLE_VARS_LEN 36
+#define EDITABLE_VARS_LEN 40
 extern std::map<String, editable_t> editableVars;
 
 // EEPROM
@@ -459,6 +459,15 @@ void serverSetup() {
 
         serializeJson(doc, *response);
         request->send(response);
+    });
+
+    server.on("/wifireset", HTTP_POST, [](AsyncWebServerRequest* request) {
+        request->send(200, "text/plain", "WiFi settings are being reset. Rebooting...");
+
+        // Defer slightly so the response gets sent before reboot
+        delay(1000);
+
+        wiFiReset();
     });
 
     server.onNotFound([](AsyncWebServerRequest* request) { request->send(404, "text/plain", "Not found"); });

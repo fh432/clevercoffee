@@ -13,14 +13,6 @@
 #define USR_FW_HOTFIX     0
 #define USR_FW_BRANCH     "MASTER"
 
-// List of supported machines
-enum MACHINE {
-    RancilioSilvia,  // MACHINEID 0
-    RancilioSilviaE, // MACHINEID 1
-    Gaggia,          // MACHINEID 2
-    QuickMill        // MACHINEID 3
-};
-
 /**
  * Preconfiguration
  */
@@ -31,11 +23,11 @@ enum MACHINE {
 // Display
 #define OLED_DISPLAY          2       // 0 = deactivated, 1 = SH1106 (e.g. 1.3 "128x64), 2 = SSD1306 (e.g. 0.96" 128x64), 3 = SH1106_126x64_SPI
 #define OLED_I2C              0x3C    // I2C address for OLED, 0x3C by default
-#define DISPLAYTEMPLATE       1      // 1 = Standard display template, 2 = Minimal template, 3 = only temperature, 4 = scale template, 20 = vertical display (see git Handbook for further information)
-#define DISPLAYROTATE         U8G2_R2 // rotate display clockwise: U8G2_R0 = no rotation; U8G2_R1 = 90°; U8G2_R2 = 180°; U8G2_R3 = 270°
+#define DISPLAYTEMPLATE       2       // 1 = Standard display template, 2 = Minimal template, 3 = only temperature, 4 = scale template, 20 = vertical display (see git Handbook for further information)
+#define DISPLAYROTATE         U8G2_R0 // rotate display clockwise: U8G2_R0 = no rotation; U8G2_R1 = 90°; U8G2_R2 = 180°; U8G2_R3 = 270°
 #define SCREEN_WIDTH          128     // OLED display width, in pixels
 #define SCREEN_HEIGHT         64      // OLED display height, in pixels
-#define FEATURE_SHOTTIMER     0       // 0 = deactivated, 1 = activated (with weight if FEATURE_SCALE activated)
+#define FEATURE_SHOTTIMER     1       // 0 = deactivated, 1 = activated (with weight if FEATURE_SCALE activated)
 #define FEATURE_HEATINGLOGO   1       // 0 = deactivated, 1 = activated
 #define FEATURE_PIDOFF_LOGO   1       // 0 = deactivated, 1 = activated
 #define SHOTTIMERDISPLAYDELAY 3000    // time in ms that shot timer will be shown after brew finished
@@ -57,7 +49,7 @@ enum MACHINE {
 #define POWERSWITCH_TYPE      Switch::TOGGLE          // Switch::TOGGLE or Switch::MOMENTARY (trigger)
 #define POWERSWITCH_MODE      Switch::NORMALLY_OPEN   // Switch::NORMALLY_OPEN or Switch::NORMALLY_CLOSED
 #define FEATURE_BREWSWITCH    1                       // 0 = deactivated, 1 = activated
-#define BREWSWITCH_TYPE       Switch::MOMENTARY          // Switch::TOGGLE or Switch::MOMENTARY (trigger)
+#define BREWSWITCH_TYPE       Switch::MOMENTARY       // Switch::TOGGLE or Switch::MOMENTARY (trigger)
 #define BREWSWITCH_MODE       Switch::NORMALLY_OPEN   // Switch::NORMALLY_OPEN or Switch::NORMALLY_CLOSED
 #define FEATURE_STEAMSWITCH   0                       // 0 = deactivated, 1 = activated
 #define STEAMSWITCH_TYPE      Switch::TOGGLE          // Switch::TOGGLE or Switch::MOMENTARY (trigger)
@@ -71,7 +63,7 @@ enum MACHINE {
 #define FEATURE_WATER_SENS    0                       // 0 = deactivated, 1 = activated
 #define WATER_SENS_TYPE       Switch::NORMALLY_CLOSED // Switch::NORMALLY_CLOSED for sensor XKC-Y25-NPN or Switch::NORMALLY_OPEN for XKC-Y25-PNP
 
-#define FEATURE_PRESSURESENSOR 0                      // 0 = deactivated, 1 = activated
+#define FEATURE_PRESSURESENSOR 0                        // 0 = deactivated, 1 = activated
 
 // Brew Scale
 #define FEATURE_SCALE 0 // 0 = deactivated, 1 = activated
