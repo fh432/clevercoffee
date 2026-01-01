@@ -60,8 +60,8 @@
 #define FEATURE_STATUS_LED    0                       // Blink status LED when temp is in range, 0 = deactivated, 1 = activated
 #define FEATURE_BREW_LED      0                       // Turn on brew LED when brew is started, 0 = deactivated, 1 = activated
 #define LED_TYPE              LED::STANDARD           // STANDARD_LED for an LED connected to a GPIO pin, WS2812 for adressable LEDs
-#define FEATURE_WATER_SENS    0                       // 0 = deactivated, 1 = activated
-#define WATER_SENS_TYPE       Switch::NORMALLY_CLOSED // Switch::NORMALLY_CLOSED for sensor XKC-Y25-NPN or Switch::NORMALLY_OPEN for XKC-Y25-PNP
+#define FEATURE_WATERTANKSENSOR    0                       // 0 = deactivated, 1 = activated
+#define WATERTANKSENSOR_TYPE       Switch::NORMALLY_CLOSED // Switch::NORMALLY_CLOSED for sensor XKC-Y25-NPN or Switch::NORMALLY_OPEN for XKC-Y25-PNP
 
 #define FEATURE_PRESSURESENSOR 0                        // 0 = deactivated, 1 = activated
 
