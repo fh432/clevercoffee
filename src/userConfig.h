@@ -51,7 +51,7 @@
 #define FEATURE_BREWSWITCH    1                       // 0 = deactivated, 1 = activated
 #define BREWSWITCH_TYPE       Switch::MOMENTARY       // Switch::TOGGLE or Switch::MOMENTARY (trigger)
 #define BREWSWITCH_MODE       Switch::NORMALLY_OPEN   // Switch::NORMALLY_OPEN or Switch::NORMALLY_CLOSED
-#define FEATURE_STEAMSWITCH   0                       // 0 = deactivated, 1 = activated
+#define FEATURE_STEAMSWITCH   1                       // 0 = deactivated, 1 = activated
 #define STEAMSWITCH_TYPE      Switch::TOGGLE          // Switch::TOGGLE or Switch::MOMENTARY (trigger)
 #define OPTOCOUPLER_TYPE      HIGH                    // BREWDETECTION 3 configuration; HIGH or LOW trigger optocoupler
 #define STEAMSWITCH_MODE      Switch::NORMALLY_OPEN   // Switch::NORMALLY_OPEN or Switch::NORMALLY_CLOSED
