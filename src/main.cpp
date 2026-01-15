@@ -10,7 +10,7 @@
 #define FW_VERSION    4
 #define FW_SUBVERSION 0
 #define FW_HOTFIX     0
-#define FW_BRANCH     "MASTER"
+#define FW_BRANCH     "gaggia_floh"
 
 // STL includes
 #include <map>
@@ -23,6 +23,7 @@
 #include <U8g2lib.h> // i2c display
 #include <WiFiManager.h>
 #include <os.h>
+#include <Adafruit_NeoPixel.h> // for NeoPixel LED by floh
 
 // Includes
 #include "display/bitmaps.h" // user icons for display
@@ -57,6 +58,14 @@ hw_timer_t* timer = NULL;
 #if (FEATURE_PRESSURESENSOR == 1)
 #include "hardware/pressureSensor.h"
 #include <Wire.h>
+#endif
+
+// NeoPixel LED by floh
+#if FEATURE_NEOPIXEL_LED == 1
+#define NUMPIXELS 12   // 12er RGB Ring von AZDelivery
+// PIN_STATUSLED is S_LED:OUT at ESP32 Platine Rev 1.5
+Adafruit_NeoPixel ring(NUMPIXELS, PIN_STATUSLED, NEO_GRB + NEO_KHZ800);  // TODO Move later to setup, when class LED is created
+// const int RGB_BRIGHTNESS = 80;  // 0-255 → 0-100% Helligkeit!
 #endif
 
 #if OLED_DISPLAY == 3
@@ -1451,7 +1460,15 @@ void setup() {
 #endif
     }
     else {
-        // TODO Addressable LEDs
+        // floh: neopixel ring
+        if (FEATURE_NEOPIXEL_LED) {
+            LOG(INFO, "floh: Neopixel LED states added");
+                ring.begin();
+                ring.setBrightness(88);      // Globale Helligkeit
+                ring.fill(ring.Color(0, 0, 255));  // Ganzer Ring blau
+                ring.show(); // Alle LEDs an beim Start
+            LOG(INFO, "floh: LED blue always on");
+        }
     }
 
     if (FEATURE_WATERTANKSENSOR == 1) {
@@ -1738,7 +1755,7 @@ void looppid() {
     // Steam on
     if (machineState == kSteam) {
         if (lastmachinestatepid != machineState) {
-            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", 150.0, 0.0, 0.0);
+            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", steamKp, 0.0, 0.0); // fixme floh: I and D are always 0 here, P is steamKp
             lastmachinestatepid = machineState;
         }
 
@@ -1747,14 +1764,93 @@ void looppid() {
 }
 
 void loopLED() {
-    if ((machineState == kPidNormal && (fabs(temperature - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
-        statusLed->turnOn();
-    }
-    else {
-        statusLed->turnOff();
+    if( FEATURE_NEOPIXEL_LED == 0) {
+        if ((machineState == kPidNormal && (fabs(temperature - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
+            statusLed->turnOn();
+        }
+        else {
+            statusLed->turnOff();
+        }
     }
 
-    brewLed->setGPIOState(machineState == kBrew);
+
+    if(FEATURE_NEOPIXEL_LED) {
+        //     // Color(red_Value[0..255], green_Value[0..255], blue_Value[0..255])
+        // const uint32_t RED  =    ring.Color(255, 0, 0);
+        // const uint32_t BLUE  =   ring.Color(0, 0, 255);
+        // const uint32_t GREEN  =   ring.Color(0, 255, 0);
+        // const uint32_t GREEN_LIGHT = ring.Color(64, 127, 64);
+        // const uint32_t YELLOW   =   ring.Color(255, 255, 0);
+        // const uint32_t ORANGE  = ring.Color(255, 165, 0);
+
+        // switch (machineState)
+        // {
+        // case kPidNormal:
+        //     // Green
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, GREEN);
+        //     }
+        //     break;
+        // case kBrew:
+        //     // Orange
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, ORANGE);
+        //     }
+        //     break;
+        // case kManualFlush:
+        //     // Yellow
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, YELLOW);
+        //     }
+        //     break;
+        // case kSteam:
+        //     // Red
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, RED);
+        //     }
+        //     break;
+        // case kBackflush:
+        //     // Yellow
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, YELLOW);
+        //     }
+        //     break;
+        // case kEmergencyStop:
+        //     // Red
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, RED);
+        //     }
+        //     break;
+        // case kPidDisabled:
+        //     // Blue
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, BLUE);
+        //     }
+        //     break;
+        // case kStandby:
+        //     // GREEN_LIGHT
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, GREEN_LIGHT);
+        //     }
+        //     break;
+
+        // default:
+        //     // GREEN_LIGHT
+        //     for (int i = 0; i < NUMPIXELS; i++) {
+        //         ring.setPixelColor(i, GREEN_LIGHT);
+        //     }
+        //     break;
+        // }
+
+        // ring.fill(ring.Color(0, 0, 122));  // R=0, G=0, B=255
+        // ring.setBrightness(88);  // 0-255 → 20% Helligkeit!
+        // ring.show();             // Brightness wirkt nur nach show()
+    }
+
+    // floh: change needed if LED_TYPE was changed to WS2812 (NEOPIXEL)
+    if (LED_TYPE == LED::STANDARD) {
+        brewLed->setGPIOState(machineState == kBrew);
+    }
 
 // directive required due to conflicts with TX0, Steam LED must be disabled when using USB for monitoring
 #if FEATURE_STEAM_LED
