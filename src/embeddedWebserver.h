@@ -483,14 +483,55 @@ void serverSetup() {
 
     server.addHandler(&events);
 
-    // serve static files
+    // Serve static files without gzip fallback. This avoids the ESP trying to open *.gz files
+    // from LittleFS when the browser announces gzip support.
     LittleFS.begin();
-    server.serveStatic("/css", LittleFS, "/css/", "max-age=604800"); // cache for one week
-    server.serveStatic("/js", LittleFS, "/js/", "max-age=604800");
-    server.serveStatic("/img", LittleFS, "/img/", "max-age=604800"); // cache for one week
-    server.serveStatic("/webfonts", LittleFS, "/webfonts/", "max-age=604800");
-    server.serveStatic("/manifest.json", LittleFS, "/manifest.json", "max-age=604800");
-    server.serveStatic("/", LittleFS, "/html/", "max-age=604800").setDefaultFile("index.html").setTemplateProcessor(staticProcessor);
+
+    server.on("/", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (!LittleFS.exists("/html/index.html")) {
+            request->send(404, "text/plain", "index.html not found");
+            return;
+        }
+        request->send(LittleFS, "/html/index.html", "text/html", false, staticProcessor);
+    });
+
+    server.on("/manifest.json", HTTP_GET, [](AsyncWebServerRequest* request) {
+        if (!LittleFS.exists("/manifest.json")) {
+            request->send(404, "text/plain", "manifest.json not found");
+            return;
+        }
+        request->send(LittleFS, "/manifest.json", "application/json", false);
+    });
+
+    server.onNotFound([](AsyncWebServerRequest* request) {
+        String path = request->url();
+        if (path == "/") {
+            if (!LittleFS.exists("/html/index.html")) {
+                request->send(404, "text/plain", "index.html not found");
+                return;
+            }
+            request->send(LittleFS, "/html/index.html", "text/html", false, staticProcessor);
+            return;
+        }
+
+        if (!LittleFS.exists(path)) {
+            request->send(404, "text/plain", "Not found");
+            return;
+        }
+
+        String contentType = "text/plain";
+        if (path.endsWith(".html")) contentType = "text/html";
+        else if (path.endsWith(".css")) contentType = "text/css";
+        else if (path.endsWith(".js")) contentType = "application/javascript";
+        else if (path.endsWith(".json")) contentType = "application/json";
+        else if (path.endsWith(".svg")) contentType = "image/svg+xml";
+        else if (path.endsWith(".png")) contentType = "image/png";
+        else if (path.endsWith(".jpg") || path.endsWith(".jpeg")) contentType = "image/jpeg";
+        else if (path.endsWith(".ico")) contentType = "image/x-icon";
+        else if (path.endsWith(".woff") || path.endsWith(".woff2")) contentType = "font/woff2";
+
+        request->send(LittleFS, path, contentType, false);
+    });
 
     server.begin();
 
