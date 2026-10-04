@@ -32,6 +32,7 @@
 
 // Utilities:
 #include "utils/Timer.h"
+#include "led/LEDManager.h"
 
 // Hardware classes
 #include "hardware/GPIOPin.h"
@@ -54,6 +55,11 @@
 #endif
 
 hw_timer_t* timer = NULL;
+
+// LED manager (non-blocking updates via timing gate in loop)
+LEDManager* ledManager = nullptr;
+Timer* ledManagerTimer = nullptr;
+unsigned long lastLedUpdateMillis = 0;
 
 #if (FEATURE_PRESSURESENSOR == 1)
 #include "hardware/pressureSensor.h"
@@ -84,20 +90,7 @@ Adafruit_NeoPixel ring(NUMPIXELS, PIN_STATUSLED, NEO_GRB + NEO_KHZ800);  // TODO
 
 #define HIGH_ACCURACY
 
-enum MachineState {
-    kInit = 0,
-    kPidNormal = 20,
-    kBrew = 30,
-    kManualFlush = 35,
-    kSteam = 40,
-    kBackflush = 50,
-    kWaterTankEmpty = 70,
-    kEmergencyStop = 80,
-    kPidDisabled = 90,
-    kStandby = 95,
-    kSensorError = 100,
-    kEepromError = 110,
-};
+#include "MachineState.h"
 
 MachineState machineState = kInit;
 MachineState lastmachinestate = kInit;
@@ -147,6 +140,10 @@ GPIOPin* steamLedPin;
 LED* statusLed;
 LED* brewLed;
 LED* steamLed;
+// NeoPixel LED by floh
+#if FEATURE_NEOPIXEL_LED == 1
+LED* neoPixelLed;
+#endif
 
 GPIOPin heaterRelayPin(PIN_HEATER, GPIOPin::OUT);
 Relay heaterRelay(heaterRelayPin, HEATER_SSR_TYPE);
@@ -1458,6 +1455,11 @@ void setup() {
         steamLed = new StandardLED(*steamLedPin, FEATURE_STEAM_LED);
         steamLed->turnOff();
 #endif
+
+        // Initialize LED manager for non-blocking updates
+        ledManager = new LEDManager(statusLed, brewLed, steamLed);
+        ledManagerTimer = new Timer(std::bind(&LEDManager::tick, ledManager), LEDManager::INTERVAL_MS);
+        lastLedUpdateMillis = millis();
     }
     else {
         // floh: neopixel ring
@@ -1469,6 +1471,11 @@ void setup() {
                 ring.show(); // Alle LEDs an beim Start
             LOG(INFO, "floh: LED blue always on");
         }
+
+        // Initialize LED manager for neopixel case as well (status/brew pointers may be null)
+        ledManager = new LEDManager(statusLed, brewLed, steamLed);
+        ledManagerTimer = new Timer(std::bind(&LEDManager::tick, ledManager), LEDManager::INTERVAL_MS);
+        lastLedUpdateMillis = millis();
     }
 
     if (FEATURE_WATERTANKSENSOR == 1) {
@@ -1574,8 +1581,13 @@ void loop() {
     // Update PID settings & machine state
     looppid();
 
-    // Update LED output based on machine state
-    loopLED();
+    // Update LED output based on machine state at a fixed interval, without blocking the loop.
+    if (millis() - lastLedUpdateMillis >= LEDManager::INTERVAL_MS) {
+        lastLedUpdateMillis = millis();
+        if (ledManager) {
+            ledManager->tick();
+        }
+    }
 }
 
 void looppid() {
@@ -1764,98 +1776,7 @@ void looppid() {
 }
 
 void loopLED() {
-    if( FEATURE_NEOPIXEL_LED == 0) {
-        if ((machineState == kPidNormal && (fabs(temperature - setpoint) < 0.3)) || (temperature > 115 && fabs(temperature - setpoint) < 5)) {
-            statusLed->turnOn();
-        }
-        else {
-            statusLed->turnOff();
-        }
-    }
-
-
-    if(FEATURE_NEOPIXEL_LED) {
-        //     // Color(red_Value[0..255], green_Value[0..255], blue_Value[0..255])
-        // const uint32_t RED  =    ring.Color(255, 0, 0);
-        // const uint32_t BLUE  =   ring.Color(0, 0, 255);
-        // const uint32_t GREEN  =   ring.Color(0, 255, 0);
-        // const uint32_t GREEN_LIGHT = ring.Color(64, 127, 64);
-        // const uint32_t YELLOW   =   ring.Color(255, 255, 0);
-        // const uint32_t ORANGE  = ring.Color(255, 165, 0);
-
-        // switch (machineState)
-        // {
-        // case kPidNormal:
-        //     // Green
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, GREEN);
-        //     }
-        //     break;
-        // case kBrew:
-        //     // Orange
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, ORANGE);
-        //     }
-        //     break;
-        // case kManualFlush:
-        //     // Yellow
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, YELLOW);
-        //     }
-        //     break;
-        // case kSteam:
-        //     // Red
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, RED);
-        //     }
-        //     break;
-        // case kBackflush:
-        //     // Yellow
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, YELLOW);
-        //     }
-        //     break;
-        // case kEmergencyStop:
-        //     // Red
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, RED);
-        //     }
-        //     break;
-        // case kPidDisabled:
-        //     // Blue
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, BLUE);
-        //     }
-        //     break;
-        // case kStandby:
-        //     // GREEN_LIGHT
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, GREEN_LIGHT);
-        //     }
-        //     break;
-
-        // default:
-        //     // GREEN_LIGHT
-        //     for (int i = 0; i < NUMPIXELS; i++) {
-        //         ring.setPixelColor(i, GREEN_LIGHT);
-        //     }
-        //     break;
-        // }
-
-        // ring.fill(ring.Color(0, 0, 122));  // R=0, G=0, B=255
-        // ring.setBrightness(88);  // 0-255 → 20% Helligkeit!
-        // ring.show();             // Brightness wirkt nur nach show()
-    }
-
-    // floh: change needed if LED_TYPE was changed to WS2812 (NEOPIXEL)
-    if (LED_TYPE == LED::STANDARD) {
-        brewLed->setGPIOState(machineState == kBrew);
-    }
-
-// directive required due to conflicts with TX0, Steam LED must be disabled when using USB for monitoring
-#if FEATURE_STEAM_LED
-    steamLed->setGPIOState(machineState == kSteam);
-#endif
+    if (ledManagerTimer) (*ledManagerTimer)();
 }
 
 void checkWaterTank() {
