@@ -26,6 +26,11 @@ void printScreen() {
         return;
     }
 
+    // Print a special screen for the current machine state, if needed
+    if (displayMachineState()) {
+        return;
+    }
+
     // If no specific machine state was printed, print default:
     u8g2.clearBuffer();
 

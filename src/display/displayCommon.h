@@ -287,6 +287,37 @@ void displayStatusbar() {
     // For status info
     u8g2.drawLine(0, 12, 128, 12);
 
+#if DISPLAYTEMPLATE == 2
+    if (offlineMode == 0) {
+        displayWiFiStatus(4, 1);
+
+        String ipAddress = WiFi.status() == WL_CONNECTED ? WiFi.localIP().toString() : "No IP";
+        u8g2.setFont(u8g2_font_profont11_tf);
+        int ipWidth = u8g2.getStrWidth(ipAddress.c_str());
+        int ipX = (128 - ipWidth) / 2;
+        u8g2.drawStr(ipX, 0, ipAddress.c_str());
+
+        unsigned long uptimeMinutes = millis() / 60000UL;
+        if (uptimeMinutes > 99) {
+            uptimeMinutes = 99;
+        }
+        char uptimeString[4];
+        snprintf(uptimeString, sizeof(uptimeString), "%02lum", uptimeMinutes);
+        int uptimeWidth = u8g2.getStrWidth(uptimeString);
+        int uptimeX = 128 - uptimeWidth - 2;
+        u8g2.drawStr(uptimeX, 0, uptimeString);
+
+        int mqttWidth = u8g2.getStrWidth("MQTT");
+        if (ipX > 14 + mqttWidth + 2) {
+            displayMQTTStatus(14, 0);
+        }
+    }
+    else {
+        u8g2.setCursor(4, 0);
+        u8g2.setFont(u8g2_font_profont11_tf);
+        u8g2.print(langstring_offlinemode);
+    }
+#else
     if (offlineMode == 0) {
         displayWiFiStatus(4, 1);
         displayMQTTStatus(38, 0);
@@ -299,6 +330,7 @@ void displayStatusbar() {
 
     const char* format = "%02luh %02lum";
     displayUptime(84, 0, format);
+#endif
 }
 
 /**
