@@ -1466,7 +1466,7 @@ void setup() {
         if (FEATURE_NEOPIXEL_LED) {
             LOG(INFO, "floh: Neopixel LED states added");
                 ring.begin();
-                ring.setBrightness(88);      // Globale Helligkeit
+                ring.setBrightness(128);      // Globale Helligkeit
                 ring.fill(ring.Color(0, 0, 255));  // Ganzer Ring blau
                 ring.show(); // Alle LEDs an beim Start
             LOG(INFO, "floh: LED blue always on");
@@ -1767,7 +1767,7 @@ void looppid() {
     // Steam on
     if (machineState == kSteam) {
         if (lastmachinestatepid != machineState) {
-            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", steamKp, 0.0, 0.0); // fixme floh: I and D are always 0 here, P is steamKp
+            LOGF(DEBUG, "new PID-Values: P=%.1f  I=%.1f  D=%.1f", steamKp, 0.0, 0.0); // floh: I and D are always 0 here, P is steamKp
             lastmachinestatepid = machineState;
         }
 

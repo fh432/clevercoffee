@@ -51,11 +51,7 @@ void LEDManager::tick() {
             for (int i = 0; i < NUMPIXELS; ++i) ring.setPixelColor(i, GREEN);
             break;
         }
-        case kPidDisabled: {
-            const uint32_t GREEN_DIM = ring.Color(0, 51, 0); // 20% intensity green
-            for (int i = 0; i < NUMPIXELS; ++i) ring.setPixelColor(i, GREEN_DIM);
-            break;
-        }
+        case kPidDisabled:
         case kInit:
         case kStandby: {
             const uint32_t BLUE = ring.Color(0, 0, 255);
