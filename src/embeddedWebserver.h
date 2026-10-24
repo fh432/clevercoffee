@@ -514,7 +514,9 @@ void serverSetup() {
             return;
         }
 
-        if (!LittleFS.exists(path)) {
+        bool isHtml = path.endsWith(".html");
+        String filePath = isHtml ? "/html" + path : path;
+        if (!LittleFS.exists(filePath)) {
             request->send(404, "text/plain", "Not found");
             return;
         }
@@ -530,7 +532,11 @@ void serverSetup() {
         else if (path.endsWith(".ico")) contentType = "image/x-icon";
         else if (path.endsWith(".woff") || path.endsWith(".woff2")) contentType = "font/woff2";
 
-        request->send(LittleFS, path, contentType, false);
+        if (isHtml) {
+            request->send(LittleFS, filePath, contentType, false, staticProcessor);
+        } else {
+            request->send(LittleFS, filePath, contentType, false);
+        }
     });
 
     server.begin();

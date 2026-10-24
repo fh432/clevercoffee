@@ -68,32 +68,29 @@
                                 <template v-for="param in parameters">
                                     <tr>
                                         <template v-if="param.name == 'PID_ON'">
-                                            <td><b>Toggle PID Controller</b></td>
-                                            <td><span id="pid_state"></span></td>
+                                            <td><b>Toggle PID Controller <span id="pid_state" :class="param.value == 1 ? 'text-success' : 'text-danger'">{{param.value == 1 ? 'is on' : 'is off'}}</span></b></td>
                                             <td>
                                                 <form action="/togglePid" method="post">
                                                     <input type="hidden" id="varPID_ON" name="varPID_ON" />
-                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Off' : 'On'" id="pid_toggle" />
+                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Switch off' : 'Switch on'" id="pid_toggle" />
                                                 </form>
                                             </td>
                                         </template>
                                         <template v-if="param.name == 'STEAM_MODE'">
-                                            <td><b>Toggle Steam Mode</b></td>
-                                            <td><span id="steam_state"></span></td>
+                                            <td><b>Toggle Steam Mode <span id="steam_state" :class="param.value == 1 ? 'text-success' : 'text-danger'">{{param.value == 1 ? 'is on' : 'is off'}}</span></b></td>
                                             <td>
                                                 <form action="/toggleSteam" method="post">
                                                     <input type="hidden" id="varSTEAM_MODE" name="varSTEAM_MODE" />
-                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Off' : 'On'" id="steam_toggle" />
+                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Switch off' : 'Switch on'" id="steam_toggle" />
                                                 </form>
                                             </td>
                                         </template>
                                         <template v-if="param.name == 'BACKFLUSH_ON'">
-                                            <td><b>Toggle Backflush Mode</b></td>
-                                            <td><span id="backflush_state"></span></td>
+                                            <td><b>Toggle Backflush Mode <span id="backflush_state" :class="param.value == 1 ? 'text-success' : 'text-danger'">{{param.value == 1 ? 'is on' : 'is off'}}</span></b></td>
                                             <td>
                                                 <form action="/toggleBackflush" method="post">
                                                     <input type="hidden" id="varBACKFLUSH_ON" name="varBACKFLUSH_ON" />
-                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Off' : 'On'" id="backflush_toggle" />
+                                                    <input type="submit" class="btn btn-primary" :value="param.value == 1 ? 'Switch off' : 'Switch on'" id="backflush_toggle" />
                                                 </form>
                                             </td>
                                         </template>
