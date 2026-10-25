@@ -293,7 +293,6 @@ SysPara<double> sysParaTemperatureRise(&temperatureRise, TEMPERATURE_RISE_MIN, T
 // Other variables
 boolean emergencyStop = false;                // Emergency stop if temperature is too high
 const double EmergencyStopTempHigh = 145;         // Temp EmergencyStopTemp by floh
-// const double EmergencyStopTempLow = 99; // FIXME: remove me later
 const double EmergencyStopTempLow = 11;          // Temp EmergencyStopTemp by floh
 
 float inX = 0, inY = 0, inOld = 0, inSum = 0; // used for filterPressureValue()
@@ -425,16 +424,28 @@ Timer printDisplayTimer(&printScreen, 100);
 // Emergency stop if temperature is outside the plausible operating range
 void testEmergencyStop() {
     static double heatingStartTemperature = 0;
+    static double previousTemperature = temperature;
     static unsigned long heatingStartedAt = 0;
     static bool wasHeating = false;
     static bool temperatureStalled = false;
 
     const unsigned long currentTime = millis();
     const bool isHeating = pidOutput >= pidOutputThreshold;
+    const bool temperatureChanged = fabs(temperature - previousTemperature) >= 1.0f;
+
+    if (temperatureChanged) {
+        previousTemperature = temperature;
+        if (temperatureStalled) {
+            temperatureStalled = false;
+            if (isHeating) {
+                heatingStartTemperature = temperature;
+                heatingStartedAt = currentTime;
+            }
+        }
+    }
 
     if (!isHeating) {
         heatingStartedAt = 0;
-        temperatureStalled = false;
     }
     else if (!wasHeating) {
         // isHeating == true && wasHeating == false -> heating just started
@@ -442,9 +453,9 @@ void testEmergencyStop() {
         heatingStartTemperature = temperature;
         heatingStartedAt = currentTime;
         // print started heating temperature
-        LOGF(INFO, "Heating started at temperature: %f", heatingStartTemperature);
+        // LOGF(INFO, "Heating started at temperature: %f", heatingStartTemperature);
         // print pidOutput
-        LOGF(ERROR, "pidOutput: %f", pidOutput);
+        LOGF(INFO, "pidOutput: %f, pidOutputThreshold: %f", pidOutput, pidOutputThreshold);
     } // isHeating == true && wasHeating == true -> heating is ongoing
     else if (!temperatureStalled && currentTime - heatingStartedAt >= watchtime) {
         temperatureStalled = temperature - heatingStartTemperature < temperatureRise;
@@ -463,7 +474,7 @@ void testEmergencyStop() {
         if(temperatureOutOfRange) {
             LOG(ERROR, "Emergency stop triggered: temperature out of range");
         }else if(temperatureStalled) {
-            LOG(ERROR, "Emergency stop triggered: temperature stalled");
+            LOG(ERROR, "Emergency stop triggered: temperature frozen");
         }
     }
     else if (!temperatureOutOfRange && !temperatureStalled && temperature < (brewSetpoint + 5) && emergencyStop) {

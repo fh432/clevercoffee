@@ -1,7 +1,12 @@
 #include <WiFi.h>
+#include <freertos/FreeRTOS.h>
 #include <utility>
 
 #include "Logger.h"
+
+namespace {
+portMUX_TYPE lastErrorMux = portMUX_INITIALIZER_UNLOCKED;
+}
 
 Logger::Logger(const uint16_t port) :
     port_(port), server_(port) {
@@ -47,7 +52,27 @@ uint16_t Logger::getPort() {
     return Logger::getInstance().getPort();
 }
 
+bool Logger::getLastError(char* buffer, size_t bufferSize) {
+    if (buffer == nullptr || bufferSize == 0) {
+        return false;
+    }
+
+    Logger& logger = getInstance();
+    portENTER_CRITICAL(&lastErrorMux);
+    bool hasError = logger.lastError_[0] != '\0';
+    snprintf(buffer, bufferSize, "%s", logger.lastError_);
+    portEXIT_CRITICAL(&lastErrorMux);
+    return hasError;
+}
+
 void Logger::log(const Level level, const String& file, const __FlashStringHelper* function, uint32_t line, const char* logmsg) {
+    if (level == Level::ERROR || level == Level::FATAL) {
+        const char* levelName = level == Level::FATAL ? "FATAL" : "ERROR";
+        portENTER_CRITICAL(&lastErrorMux);
+        snprintf(lastError_, sizeof(lastError_), "%s: %s", levelName, logmsg);
+        portEXIT_CRITICAL(&lastErrorMux);
+    }
+
     char time[12];
     current_time(time);
 

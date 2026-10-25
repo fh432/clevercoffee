@@ -2,6 +2,7 @@
 
 #include <WiFiManager.h>
 
+#include <stddef.h>
 #include <stdint.h>
 
 class Logger {
@@ -58,6 +59,11 @@ class Logger {
         static uint16_t getPort();
 
         /**
+         * @brief Copy the most recent ERROR or FATAL message into a caller-provided buffer
+         */
+        static bool getLastError(char* buffer, size_t bufferSize);
+
+        /**
          * @brief Send a log message either via serial or serial-over-wifi
          * @details This method takes a log level, source location infos and a string, assembles a log message and sends it
          *          either via serial bus or over wifi to connected clients.
@@ -111,6 +117,9 @@ class Logger {
 
         // Port of this logger
         uint16_t port_;
+
+        // Most recent ERROR or FATAL message, retained for the display
+        char lastError_[96] = {};
 
         // Server and client
         WiFiClient client_;

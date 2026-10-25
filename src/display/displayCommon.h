@@ -279,6 +279,45 @@ void displayProgressbar(int value, int x, int y, int width) {
     }
 }
 
+void displayLastError(int x, int y, int width) {
+    char errorMessage[96];
+    if (!Logger::getLastError(errorMessage, sizeof(errorMessage))) {
+        return;
+    }
+
+    u8g2.setFont(u8g2_font_5x7_tf);
+    char* remaining = errorMessage;
+
+    for (int lineNumber = 0; lineNumber < 2 && *remaining; lineNumber++) {
+        char line[32] = {};
+        size_t length = 0;
+        size_t lastSpace = 0;
+
+        while (remaining[length] && length < sizeof(line) - 1) {
+            line[length] = remaining[length];
+            line[length + 1] = '\0';
+            if (remaining[length] == ' ') {
+                lastSpace = length;
+            }
+            if (u8g2.getStrWidth(line) > width) {
+                length = lastSpace > 0 ? lastSpace : length;
+                break;
+            }
+            length++;
+        }
+
+        if (length == 0 && *remaining) {
+            length = 1;
+        }
+        line[length] = '\0';
+        u8g2.drawStr(x, y + lineNumber * 9, line);
+        remaining += length;
+        while (*remaining == ' ') {
+            remaining++;
+        }
+    }
+}
+
 /**
  * @brief Draw a status bar at the top of the screen with icons for WiFi, MQTT,
  *        the system uptime and a separator line underneath
@@ -524,12 +563,6 @@ bool displayMachineState() {
         u8g2.print(" ");
         u8g2.print((char)176);
         u8g2.print("C");
-        u8g2.setCursor(32, 34);
-        u8g2.print(langstring_set_temp);
-        u8g2.print(setpoint, 1);
-        u8g2.print(" ");
-        u8g2.print((char)176);
-        u8g2.print("C");
 
         displayThermometerOutline(4, 58);
 
@@ -541,6 +574,7 @@ bool displayMachineState() {
         }
 
         displayWaterIcon(119, 1);
+        displayLastError(32, 34, 94);
 
         u8g2.sendBuffer();
         return true;
