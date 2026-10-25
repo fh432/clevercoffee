@@ -48,6 +48,9 @@ typedef enum {
     STO_ITEM_POST_BREW_TIMER_DURATION,              // time in s that brew timer will be shown after brew finished
     STO_ITEM_FEATURE_HEATING_LOGO,                  // enables full screen logo if mashine is heating
     STO_ITEM_FEATURE_PID_OFF_LOGO,                  // enables full screen logo if pid is switched off
+    STO_ITEM_PID_OUTPUT_THRESHOLD,                 // PID output threshold for heating plausibility check
+    STO_ITEM_HEATING_WATCHTIME,                     // heating plausibility check interval
+    STO_ITEM_TEMPERATURE_RISE,                      // minimum temperature rise during the watchtime
 
     /* WHEN ADDING NEW ITEMS, THE FOLLOWING HAS TO BE UPDATED:
      * - storage structure:  sto_data_t
@@ -88,7 +91,8 @@ typedef struct __attribute__((packed)) {
         double preInfusionTimeMs;
         float scaleKnownWeight;
         double preInfusionPauseMs;
-        uint8_t freeToUse6[21];
+        double watchtime;
+        uint8_t freeToUse6[13];
         uint8_t pidBdOn;
         double pidKpBd;
         float scale2Calibration;
@@ -96,10 +100,10 @@ typedef struct __attribute__((packed)) {
         uint8_t freeToUse8[2];
         double pidTvBd;
         uint8_t freeToUse9[2];
-        double freeToUse10;
+        double pidOutputThreshold;
         double brewPIDDelaySec;
         uint8_t freeToUse11;
-        double freeToUse12;
+        double temperatureRise;
         uint8_t wifiCredentialsSaved;
         uint8_t pidUsePonM;
         double pidKpStart;
@@ -145,7 +149,8 @@ static const sto_data_t itemDefaults PROGMEM = {
     PRE_INFUSION_TIME,                                                                                                              // STO_ITEM_PRE_INFUSION_TIME
     SCALE_KNOWN_WEIGHT,                                                                                                             // STO_ITEM_SCALE_KNOWN_WEIGHT
     PRE_INFUSION_PAUSE_TIME,                                                                                                        // STO_ITEM_PRE_INFUSION_PAUSE
-    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF}, // free to use
+    HEATING_WATCHTIME,                                                                                                             // STO_ITEM_HEATING_WATCHTIME
+    {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF},                                               // free to use
     0,                                                                                                                              // STO_ITEM_USE_PID_BD
     AGGBKP,                                                                                                                         // STO_ITEM_PID_KP_BD
     SCALE2_CALIBRATION_FACTOR,                                                                                                      // STO_ITEM_SCALE2_CALIBRATION_FACTOR
@@ -153,10 +158,10 @@ static const sto_data_t itemDefaults PROGMEM = {
     {0xFF, 0xFF},                                                                                                                   // free to use
     AGGBTV,                                                                                                                         // STO_ITEM_PID_TV_BD
     {0xFF, 0xFF},                                                                                                                   // free to use
-    0xFF,                                                                                                                           // free to use
+    PID_OUTPUT_THRESHOLD,                                                                                                           // STO_ITEM_PID_OUTPUT_THRESHOLD
     BREW_PID_DELAY,                                                                                                                 // STO_ITEM_BREW_PID_DELAY
     0xFF,                                                                                                                           // free to use
-    0xFF,                                                                                                                           // free to use
+    TEMPERATURE_RISE,                                                                                                               // STO_ITEM_TEMPERATURE_RISE
     WIFI_CREDENTIALS_SAVED,                                                                                                         // STO_ITEM_WIFI_CREDENTIALS_SAVED
     0,                                                                                                                              // STO_ITEM_USE_START_PON_M
     0,                                                                                                                              // free to use
@@ -381,6 +386,21 @@ static inline int32_t getItemAddr(sto_item_id_t itemId, uint16_t* maxItemSize = 
         case STO_ITEM_FEATURE_PID_OFF_LOGO:
             addr = offsetof(sto_data_t, featurePidOffLogo);
             size = STRUCT_MEMBER_SIZE(sto_data_t, featurePidOffLogo);
+            break;
+
+        case STO_ITEM_PID_OUTPUT_THRESHOLD:
+            addr = offsetof(sto_data_t, pidOutputThreshold);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, pidOutputThreshold);
+            break;
+
+        case STO_ITEM_HEATING_WATCHTIME:
+            addr = offsetof(sto_data_t, watchtime);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, watchtime);
+            break;
+
+        case STO_ITEM_TEMPERATURE_RISE:
+            addr = offsetof(sto_data_t, temperatureRise);
+            size = STRUCT_MEMBER_SIZE(sto_data_t, temperatureRise);
             break;
 
         default:

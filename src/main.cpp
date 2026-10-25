@@ -222,6 +222,9 @@ double brewPIDDelay = BREW_PID_DELAY; // Time PID will be disabled after brew st
 
 uint8_t standbyModeOn = 0;
 double standbyModeTime = STANDBY_MODE_TIME;
+double pidOutputThreshold = PID_OUTPUT_THRESHOLD;
+double watchtime = HEATING_WATCHTIME;
+double temperatureRise = TEMPERATURE_RISE;
 
 #include "standby.h"
 
@@ -283,10 +286,16 @@ SysPara<uint8_t> sysParaFeatureFullscreenManualFlushTimer(&featureFullscreenManu
 SysPara<double> sysParaPostBrewTimerDuration(&postBrewTimerDuration, POST_BREW_TIMER_DURATION_MIN, POST_BREW_TIMER_DURATION_MAX, STO_ITEM_POST_BREW_TIMER_DURATION);
 SysPara<uint8_t> sysParaFeatureHeatingLogo(&featureHeatingLogo, 0, 1, STO_ITEM_FEATURE_HEATING_LOGO);
 SysPara<uint8_t> sysParaFeaturePidOffLogo(&featurePidOffLogo, 0, 1, STO_ITEM_FEATURE_PID_OFF_LOGO);
+SysPara<double> sysParaPidOutputThreshold(&pidOutputThreshold, PID_OUTPUT_THRESHOLD_MIN, PID_OUTPUT_THRESHOLD_MAX, STO_ITEM_PID_OUTPUT_THRESHOLD);
+SysPara<double> sysParaHeatingWatchtime(&watchtime, HEATING_WATCHTIME_MIN, HEATING_WATCHTIME_MAX, STO_ITEM_HEATING_WATCHTIME);
+SysPara<double> sysParaTemperatureRise(&temperatureRise, TEMPERATURE_RISE_MIN, TEMPERATURE_RISE_MAX, STO_ITEM_TEMPERATURE_RISE);
 
 // Other variables
 boolean emergencyStop = false;                // Emergency stop if temperature is too high
-const double EmergencyStopTemp = 145;         // Temp EmergencyStopTemp
+const double EmergencyStopTempHigh = 145;         // Temp EmergencyStopTemp by floh
+// const double EmergencyStopTempLow = 99; // FIXME: remove me later
+const double EmergencyStopTempLow = 11;          // Temp EmergencyStopTemp by floh
+
 float inX = 0, inY = 0, inOld = 0, inSum = 0; // used for filterPressureValue()
 boolean setupDone = false;
 
@@ -413,13 +422,53 @@ Timer printDisplayTimer(&printScreen, 100);
 #include "scaleHandler.h"
 #include "steamHandler.h"
 
-// Emergency stop if temp is too high
+// Emergency stop if temperature is outside the plausible operating range
 void testEmergencyStop() {
-    if (temperature > EmergencyStopTemp && emergencyStop == false) {
-        emergencyStop = true;
+    static double heatingStartTemperature = 0;
+    static unsigned long heatingStartedAt = 0;
+    static bool wasHeating = false;
+    static bool temperatureStalled = false;
+
+    const unsigned long currentTime = millis();
+    const bool isHeating = pidOutput >= pidOutputThreshold;
+
+    if (!isHeating) {
+        heatingStartedAt = 0;
+        temperatureStalled = false;
     }
-    else if (temperature < (brewSetpoint + 5) && emergencyStop == true) {
+    else if (!wasHeating) {
+        // isHeating == true && wasHeating == false -> heating just started
+        // Heating just started, record the starting temperature and time
+        heatingStartTemperature = temperature;
+        heatingStartedAt = currentTime;
+        // print started heating temperature
+        LOGF(INFO, "Heating started at temperature: %f", heatingStartTemperature);
+        // print pidOutput
+        LOGF(ERROR, "pidOutput: %f", pidOutput);
+    } // isHeating == true && wasHeating == true -> heating is ongoing
+    else if (!temperatureStalled && currentTime - heatingStartedAt >= watchtime) {
+        temperatureStalled = temperature - heatingStartTemperature < temperatureRise;
+        if (temperatureStalled) {
+            LOGF(ERROR, "Temperature rise did not reach %.1f degrees during the heating watchtime", temperatureRise);
+            // print current temperature and heatingStartTemperature
+            LOGF(ERROR, "Current temperature: %f, heatingStartTemperature: %f", temperature, heatingStartTemperature);
+        }
+    }
+
+    wasHeating = isHeating;
+
+    const bool temperatureOutOfRange = temperature > EmergencyStopTempHigh || temperature <= EmergencyStopTempLow;
+    if ((temperatureOutOfRange || temperatureStalled) && !emergencyStop) {
+        emergencyStop = true;
+        if(temperatureOutOfRange) {
+            LOG(ERROR, "Emergency stop triggered: temperature out of range");
+        }else if(temperatureStalled) {
+            LOG(ERROR, "Emergency stop triggered: temperature stalled");
+        }
+    }
+    else if (!temperatureOutOfRange && !temperatureStalled && temperature < (brewSetpoint + 5) && emergencyStop) {
         emergencyStop = false;
+        LOG(INFO, "Emergency stop cleared");
     }
 }
 
@@ -1359,6 +1408,36 @@ void setup() {
                                     .ptr = (void*)&featurePidOffLogo};
     editableVars["VERSION"] = {
         .displayName = F("Version"), .hasHelpText = false, .helpText = "", .type = kCString, .section = sOtherSection, .position = 40, .show = [] { return false; }, .minValue = 0, .maxValue = 1, .ptr = (void*)sysVersion};
+    editableVars["PID_OUTPUT_THRESHOLD"] = {.displayName = F("PID Output Threshold"),
+                                            .hasHelpText = true,
+                                            .helpText = F("Minimum PID output required to start the heating plausibility check (0-1000, where 1000 is 100%)."),
+                                            .type = kDouble,
+                                            .section = sPIDSection,
+                                            .position = 41,
+                                            .show = [] { return true; },
+                                            .minValue = PID_OUTPUT_THRESHOLD_MIN,
+                                            .maxValue = PID_OUTPUT_THRESHOLD_MAX,
+                                            .ptr = (void*)&pidOutputThreshold};
+    editableVars["HEATING_WATCHTIME"] = {.displayName = F("Heating Watchtime (ms)"),
+                                         .hasHelpText = true,
+                                         .helpText = F("Time the heater must run before checking the temperature rise."),
+                                         .type = kDouble,
+                                         .section = sPIDSection,
+                                         .position = 42,
+                                         .show = [] { return true; },
+                                         .minValue = HEATING_WATCHTIME_MIN,
+                                         .maxValue = HEATING_WATCHTIME_MAX,
+                                         .ptr = (void*)&watchtime};
+    editableVars["TEMPERATURE_RISE"] = {.displayName = F("Temperature Rise (°C)"),
+                                        .hasHelpText = true,
+                                        .helpText = F("Minimum temperature rise required during the heating check watchtime."),
+                                        .type = kDouble,
+                                        .section = sPIDSection,
+                                        .position = 43,
+                                        .show = [] { return true; },
+                                        .minValue = TEMPERATURE_RISE_MIN,
+                                        .maxValue = TEMPERATURE_RISE_MAX,
+                                        .ptr = (void*)&temperatureRise};
     // when adding parameters, set EDITABLE_VARS_LEN to max of .position
 
 #if (FEATURE_PRESSURESENSOR == 1)
@@ -1376,6 +1455,9 @@ void setup() {
     mqttVars["aggTn"] = [] { return &editableVars.at("PID_TN"); };
     mqttVars["aggTv"] = [] { return &editableVars.at("PID_TV"); };
     mqttVars["aggIMax"] = [] { return &editableVars.at("PID_I_MAX"); };
+    mqttVars["pidOutputThreshold"] = [] { return &editableVars.at("PID_OUTPUT_THRESHOLD"); };
+    mqttVars["heatingWatchtime"] = [] { return &editableVars.at("HEATING_WATCHTIME"); };
+    mqttVars["temperatureRise"] = [] { return &editableVars.at("TEMPERATURE_RISE"); };
     mqttVars["steamKp"] = [] { return &editableVars.at("STEAM_KP"); };
     mqttVars["standbyModeOn"] = [] { return &editableVars.at("STANDBY_MODE_ON"); };
     mqttVars["aggbKp"] = [] { return &editableVars.at("PID_BD_KP"); };
@@ -1637,8 +1719,8 @@ void looppid() {
         temperature -= brewTempOffset;
     }
 
-    testEmergencyStop(); // test if temp is too high
     bPID.Compute();      // the variable pidOutput now has new values from PID (will be written to heater pin in ISR.cpp)
+    testEmergencyStop(); // test temperature plausibility
 
     if ((millis() - lastTempEvent) > tempEventInterval) {
         // send temperatures to website endpoint
@@ -1913,6 +1995,9 @@ int readSysParamsFromStorage(void) {
     if (sysParaPostBrewTimerDuration.getStorage() != 0) return -1;
     if (sysParaFeatureHeatingLogo.getStorage() != 0) return -1;
     if (sysParaFeaturePidOffLogo.getStorage() != 0) return -1;
+    if (sysParaPidOutputThreshold.getStorage() != 0) return -1;
+    if (sysParaHeatingWatchtime.getStorage() != 0) return -1;
+    if (sysParaTemperatureRise.getStorage() != 0) return -1;
 
     return 0;
 }
@@ -1957,6 +2042,9 @@ int writeSysParamsToStorage(void) {
     if (sysParaPostBrewTimerDuration.setStorage() != 0) return -1;
     if (sysParaFeatureHeatingLogo.setStorage() != 0) return -1;
     if (sysParaFeaturePidOffLogo.setStorage() != 0) return -1;
+    if (sysParaPidOutputThreshold.setStorage() != 0) return -1;
+    if (sysParaHeatingWatchtime.setStorage() != 0) return -1;
+    if (sysParaTemperatureRise.setStorage() != 0) return -1;
 
     return storageCommit();
 }

@@ -53,6 +53,9 @@ int writeSysParamsToStorage(void);
 #define POST_BREW_TIMER_DURATION              3      // time in seconds that brew timer will be shown after brew finished
 #define FEATURE_HEATING_LOGO                  1      // enables full screen logo if mashine is heating
 #define FEATURE_PID_OFF_LOGO                  1      // enables full screen logo if pid is switched off
+#define PID_OUTPUT_THRESHOLD                  666    // PID output threshold for heating plausibility check
+#define HEATING_WATCHTIME                     10000  // heating plausibility check interval in milliseconds
+#define TEMPERATURE_RISE                      5.0    // minimum temperature rise during the watchtime in °C
 
 #define PID_KP_REGULAR_MIN           0
 #define PID_KP_REGULAR_MAX           999
@@ -96,3 +99,9 @@ int writeSysParamsToStorage(void);
 #define BACKFLUSH_FLUSH_TIME_MAX     20
 #define POST_BREW_TIMER_DURATION_MIN 0
 #define POST_BREW_TIMER_DURATION_MAX 60
+#define PID_OUTPUT_THRESHOLD_MIN    0       // 0%
+#define PID_OUTPUT_THRESHOLD_MAX    1000    // 100%
+#define HEATING_WATCHTIME_MIN       1000    // 1000 ms = 1 s
+#define HEATING_WATCHTIME_MAX       60000   // 60000 ms = 60 s
+#define TEMPERATURE_RISE_MIN        1       // 1°C
+#define TEMPERATURE_RISE_MAX        50      // 50°C
